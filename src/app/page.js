@@ -1,95 +1,143 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+'use client'
+import { useEffect, useState } from 'react'
+import axios from 'axios'
+import './Home.css'
 
 export default function Home() {
-  return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol>
-          <li>
-            Get started by editing <code>src/app/page.js</code>.
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [seats, setSeats] = useState([])
+  const [seatCount, setSeatCount] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
 
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.secondary}
-          >
-            Read our docs
-          </a>
+  const availableCount = seats.filter(seat => !seat.is_reserved).length
+  const reservedCount = seats.filter(seat => seat.is_reserved).length
+
+
+  useEffect(() => {
+    fetchSeats()
+  }, [])
+
+  const fetchSeats = () => {
+    setIsLoading(true)
+    // axios.get('http://localhost:5000/api/seats')
+    axios.get('https://train-seat-backend.onrender.com/api/seats')
+      .then(res => setSeats(res.data))
+      .catch(err => console.error(err))
+      .finally(() => setIsLoading(false))
+  }
+
+  const handleBook = async () => {
+    const count = parseInt(seatCount)
+    if (!count || count < 1 || count > 7) {
+      alert("Please enter a valid number of seats (1–7).")
+      return
+    }
+
+    const availableSeats = seats.filter(seat => !seat.is_reserved)
+    if (availableSeats.length < count) {
+      alert(`Only ${availableSeats.length} seat(s) are available.`)
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      // await axios.post('http://localhost:5000/api/seats/reserve', { count })
+      await axios.post('https://train-seat-backend.onrender.com/api/seats/reserve', { count })
+      alert(`Successfully reserved ${count} seat(s)!`)
+      fetchSeats()
+      setSeatCount('')
+    } catch (error) {
+      console.error(error)
+      alert("Error reserving seats.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleReset = async () => {
+    if (!window.confirm("Are you sure you want to reset all seats?")) return;
+  
+    setIsLoading(true)
+    try {
+      // await axios.post('http://localhost:5000/api/seats/reset')
+      await axios.post('https://train-seat-backend.onrender.com/api/seats/reset')
+      alert("All seats have been reset!")
+      fetchSeats()
+      setSeatCount('')
+    } catch (error) {
+      console.error(error)
+      alert("Error resetting seats.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+  
+
+  return (
+    <main className="main-container">
+      <h1 className="title">Train Seat Reservation</h1>
+
+      <div className="layout-container">
+        <div className="seat-area">
+          <div className="legend">
+            <span className="legend-box available"></span> Available
+            <span className="legend-box reserved"></span> Reserved
+          </div>
+
+          {isLoading ? (
+            <div className="loader">Loading seats...</div>
+          ) : (
+            <div className="seat-grid">
+              {seats.map(seat => (
+                <div
+                  key={seat.id}
+                  className={`seat-box ${seat.is_reserved ? 'reserved' : 'available'}`}
+                >
+                  {seat.id}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      </main>
-      <footer className={styles.footer}>
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+
+        <div className="sidebar">
+          <label className="input-label">How many seats do you want to reserve?</label>
+          <input
+            type="number"
+            min="1"
+            max="7"
+            value={seatCount}
+            onChange={e => setSeatCount(e.target.value)}
+            className="input-field"
           />
-          Learn
-        </a>
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+          <button
+            className="btn book-btn"
+            onClick={handleBook}
+            disabled={!seatCount || isLoading}
+          >
+            Book
+          </button>
+          <button
+            className="btn reset-btn"
+            onClick={handleReset}
+            disabled={isLoading}
+          >
+            Reset
+          </button>
+        </div>
+
+        <div className="summary-container">
+  <div className="summary-field">
+    <label>Available Seats:</label>
+    <input type="text" readOnly value={availableCount} className="summary-input" />
+  </div>
+  <div className="summary-field">
+    <label>Reserved Seats:</label>
+    <input type="text" readOnly value={reservedCount} className="summary-input" />
+  </div>
+</div>
+
+
+      </div>
+    </main>
+  )
 }
