@@ -2,13 +2,15 @@
   "name": "frontend",
   "version": "0.1.0",
   "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build && next export",
-    "start": "next start",
-    "export": "next export",
-    "lint": "next lint"
-  },
+ "scripts": {
+  "dev": "next dev",
+  "build": "next build",          // ✅ Remove next export
+  "start": "next start",
+  "export": "next build",         // ✅ Not strictly needed anymore
+  "lint": "next lint"
+},
+
+
   "dependencies": {
     "axios": "^1.8.4",
     "next": "15.3.0",
